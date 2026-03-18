@@ -10,54 +10,63 @@ intents.message_content = True
 
 client = discord.Client(intents=intents)
 
+
+# 📄 Get Google Doc text
 def get_doc_text():
     try:
         response = requests.get(DOC_URL)
-        return response.text.lower()
+        return response.text
     except:
         return ""
 
+
+# 🧠 Smart section-based answering
 def find_answer(question, doc):
     question = question.lower()
 
-    # Example keyword logic (expand this yourself)
-    if "currency" in question or "money" in question:
-        if "currency" in doc or "earn" in doc:
-            return (
-                "💰 **How to earn currency:**\n\n"
-                "- Play the game normally\n"
-                "- Complete tasks or objectives\n"
-                "- Trade or collect resources\n\n"
-                "👉 Check the game systems in the guide for more detailed methods."
-            )
+    # Split into sections
+    sections = doc.split("====================================================")
 
-    if "rules" in question:
-        return "📜 Please follow the server rules listed in the guide."
+    best_section = None
+    best_score = 0
 
-    if "discord" in question:
-        return "💬 This Discord is for helping players and community discussion."
+    for section in sections:
+        section_lower = section.lower()
 
-    # fallback (smart-ish)
-    for line in doc.split("\n"):
-        if any(word in line for word in question.split()):
-            return f"🧠 {line.strip()}"
+        # ❌ Skip useless sections
+        if "[identity]" in section_lower or "[important rules]" in section_lower:
+            continue
+
+        score = 0
+        for word in question.split():
+            if word in section_lower:
+                score += 1
+
+        if score > best_score:
+            best_score = score
+            best_section = section
+
+    if best_section and best_score > 0:
+        return "🧠 **Answer:**\n\n" + best_section.strip()[:1500]
 
     return "❌ I couldn't find that in the guide. Try asking differently!"
+
 
 @client.event
 async def on_ready():
     print(f"✅ Logged in as {client.user}")
+
 
 @client.event
 async def on_message(message):
     if message.author == client.user:
         return
 
-    # Only respond when pinged
+    # Only respond if bot is mentioned
     if client.user in message.mentions:
         doc_text = get_doc_text()
 
-        # Remove mention from message
+        # Remove mention
         question = message.content.replace(f"<@{client.user.id}>", "").strip()
 
         if not question:
@@ -66,5 +75,6 @@ async def on_message(message):
 
         answer = find_answer(question, doc_text)
         await message.channel.send(answer)
+
 
 client.run(TOKEN)
