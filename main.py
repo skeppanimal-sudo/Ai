@@ -20,7 +20,7 @@ def get_doc_text():
         return ""
 
 
-# 🧠 Smart section-based answering (FIXED)
+# 🧠 Clean smart answer
 def find_answer(question, doc):
     question = question.lower()
 
@@ -28,36 +28,53 @@ def find_answer(question, doc):
 
     sections = []
 
-    # Combine title + content properly
+    # Combine title + content
     for i in range(1, len(parts) - 1, 2):
         title = parts[i].strip()
         content = parts[i + 1].strip()
-        full_section = title + "\n\n" + content
-        sections.append(full_section)
+        sections.append((title, content))
 
     best_section = None
     best_score = 0
 
-    for section in sections:
-        section_lower = section.lower()
+    for title, content in sections:
+        section_text = (title + " " + content).lower()
 
-        # Skip useless sections
-        if "[identity]" in section_lower or "[important rules]" in section_lower:
+        if "[identity]" in section_text or "[important rules]" in section_text:
             continue
 
         score = 0
         for word in question.split():
-            if word in section_lower:
+            if word in section_text:
                 score += 1
 
         if score > best_score:
             best_score = score
-            best_section = section
+            best_section = content
 
     if best_section and best_score > 0:
-        return "🧠 **Answer:**\n\n" + best_section[:1500]
+        lines = best_section.split("\n")
 
-    return "❌ I couldn't find that in the guide."
+        clean_lines = []
+
+        for line in lines:
+            line = line.strip()
+
+            # Skip useless lines
+            if not line:
+                continue
+            if line.lower().startswith("you earn"):
+                continue
+
+            # Format bullet points
+            if line.startswith("-"):
+                clean_lines.append(f"• {line[1:].strip()}")
+            else:
+                clean_lines.append(line)
+
+        return "\n".join(clean_lines[:10])
+
+    return "I couldn't find that in the guide. Try asking differently."
 
 
 @client.event
@@ -70,11 +87,9 @@ async def on_message(message):
     if message.author == client.user:
         return
 
-    # Only respond when pinged
     if client.user in message.mentions:
         doc_text = get_doc_text()
 
-        # Remove mention from message
         question = message.content.replace(f"<@{client.user.id}>", "").strip()
 
         if not question:
