@@ -4,7 +4,7 @@ import os
 import time
 
 # ===== CONFIG =====
-TOKEN = os.getenv("DISCORD_TOKEN")import discord
+TOKEN = os.getenv("DISCORD_TOKEN")
 import requests
 import os
 
