@@ -20,12 +20,20 @@ def get_doc_text():
         return ""
 
 
-# 🧠 Smart section-based answering
+# 🧠 Smart section-based answering (FIXED)
 def find_answer(question, doc):
     question = question.lower()
 
-    # Split into sections
-    sections = doc.split("====================================================")
+    parts = doc.split("====================================================")
+
+    sections = []
+
+    # Combine title + content properly
+    for i in range(1, len(parts) - 1, 2):
+        title = parts[i].strip()
+        content = parts[i + 1].strip()
+        full_section = title + "\n\n" + content
+        sections.append(full_section)
 
     best_section = None
     best_score = 0
@@ -33,7 +41,7 @@ def find_answer(question, doc):
     for section in sections:
         section_lower = section.lower()
 
-        # ❌ Skip useless sections
+        # Skip useless sections
         if "[identity]" in section_lower or "[important rules]" in section_lower:
             continue
 
@@ -47,9 +55,9 @@ def find_answer(question, doc):
             best_section = section
 
     if best_section and best_score > 0:
-        return "🧠 **Answer:**\n\n" + best_section.strip()[:1500]
+        return "🧠 **Answer:**\n\n" + best_section[:1500]
 
-    return "❌ I couldn't find that in the guide. Try asking differently!"
+    return "❌ I couldn't find that in the guide."
 
 
 @client.event
@@ -62,11 +70,11 @@ async def on_message(message):
     if message.author == client.user:
         return
 
-    # Only respond if bot is mentioned
+    # Only respond when pinged
     if client.user in message.mentions:
         doc_text = get_doc_text()
 
-        # Remove mention
+        # Remove mention from message
         question = message.content.replace(f"<@{client.user.id}>", "").strip()
 
         if not question:
