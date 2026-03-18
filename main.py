@@ -28,7 +28,6 @@ def find_answer(question, doc):
 
     sections = []
 
-    # Combine title + content
     for i in range(1, len(parts) - 1, 2):
         title = parts[i].strip()
         content = parts[i + 1].strip()
@@ -60,13 +59,11 @@ def find_answer(question, doc):
         for line in lines:
             line = line.strip()
 
-            # Skip useless lines
             if not line:
                 continue
             if line.lower().startswith("you earn"):
                 continue
 
-            # Format bullet points
             if line.startswith("-"):
                 clean_lines.append(f"• {line[1:].strip()}")
             else:
@@ -93,11 +90,13 @@ async def on_message(message):
         question = message.content.replace(f"<@{client.user.id}>", "").strip()
 
         if not question:
-            await message.channel.send("Ask me something after mentioning me!")
+            await message.reply("Ask me something after mentioning me!")
             return
 
         answer = find_answer(question, doc_text)
-        await message.channel.send(answer)
+
+        # 🔥 THIS IS THE CHANGE (reply instead of send)
+        await message.reply(answer)
 
 
 client.run(TOKEN)
